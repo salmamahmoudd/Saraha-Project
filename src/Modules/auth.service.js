@@ -8,6 +8,7 @@ import { badRequestException, conflictException, notFoundException } from "../Co
 import { OAuth2Client } from "google-auth-library";
 import { Provider } from '../Common/Response/Enums/user.enums.js';
 import nodemailer from "nodemailer";
+import { encryptValue } from "../Common/Response/Security/encrpt.js";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -25,10 +26,10 @@ export async function signup(bodyData) {
 
   bodyData.password = await hashOperation({ plainText: password });
 
-  if(phone){
-    bodyData.phone = CryptoJS.AES.encrypt(phone, ENCRYPTION_KEY).toString();
+  if(bodyData.phone){
+      const phoneEncrypted = encryptValue({value: bodyData.phone})
+     bodyData.phone = phoneEncrypted
   }
-
   const otp = Math.floor(100000 + Math.random() * 900000);
   bodyData.otp = otp;
   bodyData.otpExpire = Date.now() + 5*60*1000;
@@ -62,10 +63,16 @@ export async function verifyOtp({ email, otp }) {
 
 export async function login({ email, password }) {
   const user = await DBRepo.findOne({ model: UserModel, filters:{ email }});
-  if(!user) return notFoundException("Invalid info");
+  if(!user) {
+    console.log("User not found:", email);
+    return notFoundException("Invalid info");
+  }
 
   const valid = await compareOperation({ plainValue: password, hashedValue: user.password });
-  if(!valid) return notFoundException("Invalid info");
+  if(!valid) {
+    console.log("Password mismatch for user:", email);
+    return notFoundException("Invalid info");
+  }
 
   return generateAccessAndRefreshTokens({user});
 }

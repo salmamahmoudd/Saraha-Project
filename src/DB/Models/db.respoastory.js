@@ -50,3 +50,15 @@ export async function findById({
 
     return result;
 }
+
+
+export async function updateOne({
+  model,
+  filter,
+  data,
+  options,
+}){
+ const result = await model.updateOne( options, filter, data)
+
+    return result;
+}

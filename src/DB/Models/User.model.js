@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
         default: Provider.System,
     },
     profilePic: String,
-    profileCoverImgs: [String], 
+    coverPics: [String], 
     otp: Number,               
     otpExpire: Date,           
 },

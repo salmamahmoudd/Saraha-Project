@@ -1,5 +1,43 @@
 import multer from "multer";  
+import { randomUUID } from "node:crypto";
+import path from "path";
+import { existsSync, mkdirSync } from "node:fs";
 
-const upload = multer({ dest: "tmp/" });
+export const allowedFileFormats = {
+    img: ["image/png", "image/jpg"],
+    video: ["video/mp4"],
+    pdf: ["application/pdf"]
+};
 
-export default upload;  
+export function localUpload({
+    folderName = "GeneralFiles",
+    allowedFormate = allowedFileFormats.img,
+    fileSize = 10
+}) {
+    const storage = multer.diskStorage({
+        destination: function(req, file, cb) {
+            const fullPath = path.resolve(`./uploads/${folderName}`);
+            if (!existsSync(fullPath)) {
+                mkdirSync(fullPath, { recursive: true });
+            }
+            cb(null, fullPath);
+        },
+        filename: function(req, file, cb) {
+            const fileName = randomUUID() + "_" + file.originalname;
+            cb(null, fileName);
+        },
+    });
+
+    function fileFilter(req, file, cb) {
+        if (!allowedFormate.includes(file.mimetype)) {
+            return cb(new Error("Invalid format", { cause: { statusCode: 400 } }), false);
+        }
+        return cb(null, true);
+    }
+
+    return multer({
+        storage,
+        fileFilter,
+        limits: { fileSize: fileSize * 1024 * 1024 } 
+    });
+}

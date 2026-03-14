@@ -5,18 +5,15 @@ import { globalErrHandling } from "./Common/Response/response.js";
 import userRouter from "./Modules/User/user.controller.js";
 import authRouter from "./Modules/auth.controller.js";
 import cors from "cors";
+import path from "path";
 async function bootstrap() {
-  const GenderEnum = {
-    Male:"male",
-    Female:"female",
-}
-
-Object.values(GenderEnum)
   const app = express();
   const port = SERVER_PORT;
   await  connectDB();
 
   app.use(express.json() , cors());
+
+  app.use("/uploads", express.static(path.resolve("./uploads")))
 
   app.use("/auth", authRouter);
   app.use("/user", userRouter);

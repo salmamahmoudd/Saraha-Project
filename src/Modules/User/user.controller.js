@@ -5,6 +5,9 @@ import { authentication } from "../../Middleware/auth.middleware.js";
 import { TokenType } from "../../Common/Response/Enums/token.enums.js";
 import { RoleEnum } from "../../Common/Response/Enums/user.enums.js";
 import { authorization } from "../../Middleware/authorization.middleware.js";
+import {localUpload, allowedFileFormats } from "../../Common/Response/Multer/multer.config.js";
+import { coverPicSchema, getAnthoerProfileSchema, profilePicSchema } from "./user.validation.js";
+import { validation } from "../../Middleware/validation.middleware.js";
 
 const userRouter = express.Router();
 
@@ -15,5 +18,31 @@ userRouter.post("/renew-token", authentication(TokenType.refresh), async (req,re
     const result = await userService.renewToken(req.user)
     return successResponse({res, data:result})
 });
-
+userRouter.post("/upload-mainPic",
+    authentication(),
+    localUpload({
+        folderName:"User", 
+        allowedFormate:allowedFileFormats.img
+    }).single("profilePic"), 
+    validation(profilePicSchema),
+    async(req,res)=> { 
+    const result = await userService.uploadProfilePic(req.user._id, req.file)
+    return successResponse({res, data:result})
+}); 
+userRouter.post("/upload-coverPics",
+    authentication(),
+    localUpload({
+        folderName:"User", 
+        allowedFormate:allowedFileFormats.img
+    }).array("coverPics" , 2), 
+    validation(coverPicSchema),
+    async(req,res)=> { 
+    const result = await userService.uploadProfilePic(req.user._id, req.file)
+    return successResponse({res, data:result})
+}); 
+userRouter.get("/share-profile/:profileId", async (req,res) => {
+    validation (getAnthoerProfileSchema)
+    const result = await userService.getAnthoerProfile(req.params.profileId)
+    return successResponse({res, data:result})
+});
 export default userRouter;
