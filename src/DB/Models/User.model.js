@@ -41,7 +41,8 @@ const userSchema = new mongoose.Schema({
     profilePic: String,
     coverPics: [String], 
     otp: Number,               
-    otpExpire: Date,           
+    otpExpire: Date,        
+    changeCreditTime: Date,
 },
 {
     timestamps: true,

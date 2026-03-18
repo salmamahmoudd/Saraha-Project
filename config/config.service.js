@@ -12,12 +12,17 @@ dotenv.config({ path: evaPath[NODE_ENV || "dev"] });
 
 export const SERVER_PORT = 
 process.env.PORT || 3000;
+
 export const DB_URL_LOCAL =
- process.env.DB_URL_LOCAL || 3000;
+process.env.DB_URL_LOCAL || 3000;
+export const REDIS_URL =
+process.env.REDIS_URL || "";
+
 export const SALT_ROUND = 
 parseInt(process.env.SALT_ROUND) || 10;
 export const ENCRYPTION_KEY = 
 process.env.ENCRYPTION_KEY;
+
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID 
 export const TOKEN_SIGNATURE_User_ACCESS = 
 process.env.TOKEN_SIGNATURE_User_ACCESS ;

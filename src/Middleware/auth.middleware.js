@@ -3,7 +3,8 @@ import { decodeToken, getSignature, verifyToken } from "../Common/Response/Secur
 import { badRequestException, unAuthorizedException } from "../Common/Response/response.js";
 import UserModel from "../DB/Models/User.model.js";
 import * as DBRepo from "../DB/Models/db.respoastory.js"
-
+import * as redisMethods from "../DB/Models/redis.service.js";
+import { blackListTokenKey } from "../DB/Models/redis.service.js";
 export function authentication(tokenTypeParam = TokenType.access){
     return async (req,res,next)=>{
 
@@ -41,6 +42,17 @@ export function authentication(tokenTypeParam = TokenType.access){
                 : refreshSignature,
         });
 
+        if(
+        await redisMethods.get(
+        redisMethods.blackListTokenKey({
+            userId:verifiedToken.sub, 
+            tokenId:verifiedToken.jti,
+        })
+        )
+    ){ 
+        return unAuthorizedException("You need to login again");
+        }
+
         const user = await DBRepo.findById({
             model:UserModel,
             id: verifiedToken.sub,
@@ -50,7 +62,11 @@ export function authentication(tokenTypeParam = TokenType.access){
             return unAuthorizedException("Account not found , Signup Again");
         }
 
+        if(verifiedToken.iat * 1000 < user.changeCreditTime){
+            return unAuthorizedException("You need to login again")
+        }
         req.user = user;
+        req.tokenPayload = verifiedToken;
         next();
     }; 
 }

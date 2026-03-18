@@ -18,6 +18,16 @@ userRouter.post("/renew-token", authentication(TokenType.refresh), async (req,re
     const result = await userService.renewToken(req.user)
     return successResponse({res, data:result})
 });
+userRouter.post(
+    "/upload-mainPic",
+    authentication(),
+    localUpload({ folderName: "User", allowedFormate: allowedFileFormats.img }).single("profilePic"),
+    validation(profilePicSchema),
+    async (req, res) => {
+        const result = await userService.uploadProfilePic(req.user._id, req.file);
+        return successResponse({ res, data: result });
+    }
+);
 userRouter.post("/upload-mainPic",
     authentication(),
     localUpload({
@@ -37,12 +47,32 @@ userRouter.post("/upload-coverPics",
     }).array("coverPics" , 2), 
     validation(coverPicSchema),
     async(req,res)=> { 
-    const result = await userService.uploadProfilePic(req.user._id, req.file)
+    const result = await userService.covserProfilePic(req.user._id, req.files)
     return successResponse({res, data:result})
 }); 
-userRouter.get("/share-profile/:profileId", async (req,res) => {
-    validation (getAnthoerProfileSchema)
+userRouter.delete(
+    "/remove-profilePic",
+    authentication(),
+    async (req, res) => {
+        const result = await userService.removeProfilePic(req.user._id);
+        return successResponse({ res, data: result });
+    }
+);
+userRouter.get("/share-profile/:profileId",
+    async (req,res) => {
     const result = await userService.getAnthoerProfile(req.params.profileId)
+    return successResponse({res, data:result})
+});
+userRouter.get("/", authentication(), authorization([RoleEnum.Admin]), async (req, res) => {
+    const users = await UserModel.find({}, "userName profileVisits");
+    return successResponse({ res, data: users });
+});
+userRouter.post("/logout", authentication(), async (req,res)=>{
+    const result = await userService.logout(
+        req.user._id, 
+        req.tokenPayload,
+        req.body.logoutOption
+    );
     return successResponse({res, data:result})
 });
 export default userRouter;

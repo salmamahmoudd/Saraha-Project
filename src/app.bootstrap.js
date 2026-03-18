@@ -6,12 +6,15 @@ import userRouter from "./Modules/User/user.controller.js";
 import authRouter from "./Modules/auth.controller.js";
 import cors from "cors";
 import path from "path";
+import { testRedisConnection } from "./DB/Models/redis.connection.js";
 async function bootstrap() {
   const app = express();
   const port = SERVER_PORT;
   await  connectDB();
+  await testRedisConnection();
 
-  app.use(express.json() , cors());
+app.use(express.json());
+app.use(cors());
 
   app.use("/uploads", express.static(path.resolve("./uploads")))
 
