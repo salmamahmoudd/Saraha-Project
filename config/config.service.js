@@ -32,3 +32,8 @@ export const TOKEN_SIGNATURE_User_REFRESH =
 process.env.TOKEN_SIGNATURE_User_REFRESH ;
 export const TOKEN_SIGNATURE_Admin_REFRESH = 
 process.env.TOKEN_SIGNATURE_Admin_REFRESH ;
+
+export const EMAIL_USER = 
+process.env.EMAIL_USER ;
+export const EMAIL_PASS = 
+process.env.EMAIL_PASS ;

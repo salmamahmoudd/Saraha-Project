@@ -1,14 +1,69 @@
 import UserModel from "../DB/Models/User.model.js";
 import * as DBRepo from "../DB/Models/db.respoastory.js";
+import * as RedisMethods from "../DB/Models/redis.service.js";
 import { hashOperation, compareOperation } from "../Common/Response/Security/hash.js";
-import CryptoJS from "crypto-js";
-import { ENCRYPTION_KEY, GOOGLE_CLIENT_ID } from "../../config/config.service.js";
+import { GOOGLE_CLIENT_ID } from "../../config/config.service.js";
 import { generateAccessAndRefreshTokens } from "../Common/Response/Security/token.js";
 import { badRequestException, conflictException, notFoundException } from "../Common/Response/response.js";
 import { OAuth2Client } from "google-auth-library";
 import { Provider } from '../Common/Response/Enums/user.enums.js';
 import nodemailer from "nodemailer";
 import { encryptValue } from "../Common/Response/Security/encrpt.js";
+import { generateOTP } from "../Common/OTP/otp.service.js";
+import { EmailTypeEnum } from "../Common/Response/Enums/email.enums.js";
+
+async function sendEmailOtp({email, emailType, subject}){
+  const pervOtpTTL = await RedisMethods.ttl(
+      RedisMethods.getOTPKey({email, emailType}),
+
+  );
+
+  if (pervOtpTTL > 0) {
+    return badRequestException(
+      `There is already OTP valid for ${pervOtpTTL} seconds`
+    );
+  }
+
+  const isBlocked = await RedisMethods.exists(
+     RedisMethods.getOTPBlockedKey({ email, emailType}),
+  )
+
+  if(isBlocked){
+    return badRequestException(`Try again later`)
+  }
+
+  const reqNo = await RedisMethods.get(RedisMethods.getOTPReqNoKey({email, emailType}))
+
+  if(reqNo == 5){
+    await RedisMethods.set({
+    key: RedisMethods.getOTPBlockedKey({ email, emailType}),
+    value: 1,
+    exValue: 10 * 60,
+  });
+
+      return badRequestException(
+      `You cannot request more than 5 emails in 20m`
+    );
+
+  }
+
+  const otp = generateOTP();
+
+  await sendMail({
+    to: email,
+    subject,
+    html: `<h1>Your OTP ${otp}</h1>`,
+  });
+
+  await RedisMethods.set({
+    key:RedisMethods.getOTPKey({email, emailType }),
+
+    value: await hashOperation({ plainText: otp }),
+    exValue: 120,
+  });
+
+ await RedisMethods.incr(RedisMethods.getOTPReqNoKey({email, emailType}))
+}
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -18,10 +73,22 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function signup(bodyData) {
-  const { email, phone, password } = bodyData;
+async function sendMail({ to, subject, html }) {
+  return await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    html,
+  });
+}
 
-  const existing = await DBRepo.findOne({ model: UserModel, filters: { email }});
+export async function signup(bodyData) {
+  const { email, password } = bodyData;
+
+  const existing = await DBRepo.findOne({ 
+    model: UserModel, 
+    filters: { email }
+  });
   if (existing) return conflictException("Email Already Exists");
 
   bodyData.password = await hashOperation({ plainText: password });
@@ -30,34 +97,82 @@ export async function signup(bodyData) {
       const phoneEncrypted = encryptValue({value: bodyData.phone})
      bodyData.phone = phoneEncrypted
   }
-  const otp = Math.floor(100000 + Math.random() * 900000);
-  bodyData.otp = otp;
-  bodyData.otpExpire = Date.now() + 5*60*1000;
-
-  const user = await DBRepo.create({ model: UserModel, insertedData: bodyData });
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Your Verification Code",
-    html: `<h2>Your OTP is: ${otp}</h2><p>Valid for 5 minutes</p>`
-  });
+  const user = await DBRepo.create({
+     model: UserModel, 
+     insertedData: bodyData 
+    });
+ await sendEmailOtp({email , emailType: EmailTypeEnum.confirmEmail, subject: "Confirm Your Email"})
   return { message: "User created. OTP sent to email." };
 }
 
-export async function verifyOtp({ email, otp }) {
-  const user = await DBRepo.findOne({ model: UserModel, filters: { email }});
-  if (!user) return notFoundException("User not found");
+export async function confirmEmail(bodyData) {
+  const { email, otp } = bodyData;
 
-  if(user.otp !== Number(otp)) return badRequestException("Invalid OTP");
-  if(Date.now() > user.otpExpire) return badRequestException("OTP expired");
+  const user = await DBRepo.findOne({
+    model: UserModel,
+    filters: {email, confirmEmail:false}
+  })
+  if(!user){
+    return badRequestException("Invalid email or email already confirmed")
+  }
+  const storedOtp = await RedisMethods.get(
+    RedisMethods.getOTPKey({email, emailType : EmailTypeEnum.confirmEmail}),
+)
+  if(!storedOtp){
+    return badRequestException("OTP Expired")
+  }
+  const isOtpValid = await compareOperation({
+    plainValue: otp,
+    hashedValue: storedOtp
+  })
+  if(!isOtpValid){
+    return badRequestException("OTP Not Valid")
+  }
+  user.confirmEmail = true
+  await user.save()
+}
 
-  user.confirmEmail = true;
-  user.otp = null;
-  user.otpExpire = null;
-  await user.save();
+export async function resendConfirmEmailOTP(email) {
+ await sendEmailOtp({email , emailType: EmailTypeEnum.confirmEmail, subject: "Anthor OTP to Confirm Your Email"})
+}
 
-  return { message: "Email verified successfully" };
+export async function resendForgetPasswordOTP(email) {
+ await sendEmailOtp({email , emailType: EmailTypeEnum.forgetPassword, subject: "Anthor OTP to Reset Your Password"})
+}
+
+export async function sendOTPForgetPassword(email) {
+  const user = await DBRepo.findOne({model: UserModel, filters: { email }})
+  if(!user){
+    return ;
+  }
+  if(!user.confirmEmail){
+    return badRequestException("Confirm your email first")
+  }
+ await sendEmailOtp({email , emailType: EmailTypeEnum.forgetPassword, subject: "Reset Your Password"})
+}
+
+export async function verifyOTPForgetPassword(bodyData) {
+  const { email , otp } = bodyData;
+  
+  const emailOTP = await RedisMethods.get(RedisMethods.getOTPKey({email, emailType:EmailTypeEnum.forgetPassword}))
+
+  if(!emailOTP){
+    return badRequestException("OTP Expired")
+  }
+
+  const isOtpValid = await compareOperation({
+    plainValue: otp,
+    hashedValue: emailOTP
+  })
+  if(!isOtpValid){
+    return badRequestException("OTP Not Valid")
+  }
+}
+
+export async function resetPassword(bodyData) {
+  const { email, password, otp } = bodyData;
+  await verifyOTPForgetPassword({email, otp})
+  await DBRepo.updateOne({model:UserModel,filter:{email},data:{password: await hashOperation({plainText:password})}})
 }
 
 export async function login({ email, password }) {

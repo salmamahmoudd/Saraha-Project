@@ -3,8 +3,11 @@ import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema({
     content:{
         type:String,
-        required:true,
+        required:function(){
+            return !this.attachments.length
+        }
     },
+    attachments: [String],
     senderId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
@@ -14,7 +17,9 @@ const messageSchema = new mongoose.Schema({
         ref:"User",
         required:true,
     },
-})
+},
+{timestamps: true},
+)
 
 const MessageModel = mongoose.model("Message" , messageSchema)
 

@@ -4,7 +4,6 @@ import { badRequestException, unAuthorizedException } from "../Common/Response/r
 import UserModel from "../DB/Models/User.model.js";
 import * as DBRepo from "../DB/Models/db.respoastory.js"
 import * as redisMethods from "../DB/Models/redis.service.js";
-import { blackListTokenKey } from "../DB/Models/redis.service.js";
 export function authentication(tokenTypeParam = TokenType.access){
     return async (req,res,next)=>{
 
@@ -44,7 +43,7 @@ export function authentication(tokenTypeParam = TokenType.access){
 
         if(
         await redisMethods.get(
-        redisMethods.blackListTokenKey({
+        redisMethods.getBlackListTokenKey({
             userId:verifiedToken.sub, 
             tokenId:verifiedToken.jti,
         })

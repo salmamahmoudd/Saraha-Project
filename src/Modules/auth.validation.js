@@ -1,21 +1,21 @@
 import joi from "joi";
 import { CommonFieldValidation } from "../Middleware/validation.middleware.js";
 
-export const loginSchema = joi.object({}).keys({
+export const loginSchema = 
+joi.object({}).keys({
     email: CommonFieldValidation.email.required(),
     password: CommonFieldValidation.password.required(),
 })
-.xor("userName", "email")
-.messages({
-    "object.missing": "Either userName or email is required",
-})
+
 .required();
 
 export const signupSchema = {
     query : joi.object({}).keys({
     lang: joi.string().valid("ar", "en" ,"fr").required(),
 }),
-    body:joi.object({}).keys({
+    body:joi
+    .object({})
+    .keys({
     userName: CommonFieldValidation.userName.required(),
     email: CommonFieldValidation.email.required(),
     password: CommonFieldValidation.password.required(),
@@ -25,5 +25,38 @@ export const signupSchema = {
     gender: CommonFieldValidation.gender
 })
 .required(),
+}
 
+export const confirmEmailSchema = {
+    body:joi.object().keys({
+     email: CommonFieldValidation.email.required(),
+     otp:CommonFieldValidation.OTP.required()
+    }).required()
+}
+
+export const resendOtpConfirmEmailSchema = {
+    body:joi.object().keys({
+     email: CommonFieldValidation.email.required(),
+    }).required()
+}
+
+export const sendOTPForgetPasswordSchema = {
+    body:joi.object().keys({
+     email: CommonFieldValidation.email.required(),
+    }).required()
+}
+
+export const verifyOTPForgetPasswordSchema = {
+    body:joi.object().keys({
+     email: CommonFieldValidation.email.required(),
+     otp:CommonFieldValidation.OTP.required()
+    }).required()
+}
+
+export const resetPasswordSchema = {
+    body:joi.object().keys({
+     email: CommonFieldValidation.email.required(),
+     otp:CommonFieldValidation.OTP.required(),
+     password:CommonFieldValidation.password.required(),
+    }).required()
 }

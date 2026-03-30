@@ -6,7 +6,7 @@ import { TokenType } from "../../Common/Response/Enums/token.enums.js";
 import { RoleEnum } from "../../Common/Response/Enums/user.enums.js";
 import { authorization } from "../../Middleware/authorization.middleware.js";
 import {localUpload, allowedFileFormats } from "../../Common/Response/Multer/multer.config.js";
-import { coverPicSchema, getAnthoerProfileSchema, profilePicSchema } from "./user.validation.js";
+import { coverPicSchema, getAnthoerProfileSchema, profilePicSchema, updatePasswordSchema } from "./user.validation.js";
 import { validation } from "../../Middleware/validation.middleware.js";
 
 const userRouter = express.Router();
@@ -50,6 +50,14 @@ userRouter.post("/upload-coverPics",
     const result = await userService.covserProfilePic(req.user._id, req.files)
     return successResponse({res, data:result})
 }); 
+userRouter.patch("/update-password",
+    authentication(),
+    validation(updatePasswordSchema),
+    async(req,res)=> { 
+    await userService.updatePassword(req.body , req.user)
+    return successResponse({res, data:"done"})
+},
+)
 userRouter.delete(
     "/remove-profilePic",
     authentication(),

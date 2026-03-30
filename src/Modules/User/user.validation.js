@@ -1,6 +1,5 @@
 import joi from "joi"
-import { Types } from "mongoose"
-import { validatedObjectIdFn } from "../../Middleware/validation.middleware.js"
+import { CommonFieldValidation, validatedObjectIdFn } from "../../Middleware/validation.middleware.js"
 
 export const profilePicSchema = {
     file: joi
@@ -36,6 +35,14 @@ export const coverPicSchema = {
     .required(),
 )
     .required()
+}
+
+export const updatePasswordSchema = {
+    body:joi.object({}).keys({
+        oldPassword:CommonFieldValidation.password.required(),
+        newPassword:CommonFieldValidation.password.required(),
+        confirmNewPassword: joi.string().valid(joi.ref('newPassword')).required(),
+    })
 }
 
 export const getAnthoerProfileSchema = {

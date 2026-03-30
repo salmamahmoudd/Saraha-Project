@@ -28,18 +28,19 @@ export function validation(schema) {
 }
 
 export const CommonFieldValidation = {
-  userName: joi.string().pattern(/^[A-Z][a-z]{1,24}\s[A-Z][a-z]{1,24}$/),
+  userName: joi.string().pattern( new RegExp(/^[A-Z][a-z]{1,24}\s[A-Z][a-z]{1,24}$/)),
 
-  email: joi.string().pattern(/^\w{3,25}@(gmail|yahoo|outlook|icloud)(\.com|\.net|\.co|\.eg)$/),
 
-  password: joi.string().pattern(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,16}/),
+    email: joi.string().trim(),
 
-  phone: joi.string().pattern(/^(\+201|00201|01)(0|1|2|5)\d{8}$/),
+  password: joi.string().pattern( new RegExp(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,16}/)),
+
+  phone: joi.string().pattern( new RegExp(/^(\+201|00201|01)(0|1|2|5)\d{8}$/)),
 
   DOB: joi.date(),
 
   gender: joi.string().valid(...Object.values(GenderEnum)),
-};
+OTP: joi.string().pattern(/^\d{6}$/).required(),};
 
 export const validatedObjectIdFn = function (value, helpers){
             if (!Types.ObjectId.isValid(value)){

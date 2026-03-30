@@ -6,6 +6,10 @@ import UserModel from '../../DB/Models/User.model.js';
 import { decryptValue } from '../../Common/Response/Security/encrpt.js';
 import * as redisMethods from "../../DB/Models/redis.service.js"
 import fs from "fs";
+import { compareSync } from 'bcrypt';
+import { hash } from 'crypto';
+import { compareOperation, hashOperation } from '../../Common/Response/Security/hash.js';
+import { badRequestException } from '../../Common/Response/response.js';
 export async function renewToken(userData){
     const {accessSignature} = getSignature(userData.role)
     const newAccessToken = generateToken({ 
@@ -58,7 +62,6 @@ export async function removeProfilePic(userId){
     return { message: "Profile picture removed successfully" };
 }
 
-
 export async function getAnthoerProfile(profileId){
     const user = await DBRrepo.findById({
         id: profileId,
@@ -90,4 +93,24 @@ if(logoutOptions == "all"){
   exValue:  60 * 60 * 24 * 365 - (Date.now() / 1000 - tokenData.iat)
 })
 }
+}
+
+export async function updatePassword(bodyData, userData) {
+    const { newPassword, oldPassword } = bodyData;
+    const { password } = userData
+
+    const isOldPasswordValid = await compareOperation({
+        plainValue: oldPassword,
+        hashedValue: password,
+    })
+
+    if(!isOldPasswordValid){
+        return badRequestException("invalid old password")
+    }
+
+    await DBRrepo.updateOne({
+        model:UserModel,
+        filter:{_id: userData._id},
+        data:{password: await hashOperation ({plainText: newPassword}), changeCreditTime: new Date()}
+    })
 }
