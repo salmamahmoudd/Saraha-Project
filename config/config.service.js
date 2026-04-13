@@ -14,7 +14,9 @@ export const SERVER_PORT =
 process.env.PORT || 3000;
 
 export const DB_URL_LOCAL =
-process.env.DB_URL_LOCAL || 3000;
+process.env.DB_URL_LOCAL || "";
+export const DB_URL_ATLAS =
+process.env.DB_URL_ATLAS || "";
 export const REDIS_URL =
 process.env.REDIS_URL || "";
 

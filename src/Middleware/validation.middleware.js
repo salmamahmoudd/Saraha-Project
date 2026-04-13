@@ -27,6 +27,12 @@ export function validation(schema) {
   };
 }
 
+export const validatedObjectIdFn = function (value, helpers){
+            if (!Types.ObjectId.isValid(value)){
+              return helpers.message("invalid object id formate")
+            }
+}
+
 export const CommonFieldValidation = {
   userName: joi.string().pattern( new RegExp(/^[A-Z][a-z]{1,24}\s[A-Z][a-z]{1,24}$/)),
 
@@ -40,10 +46,7 @@ export const CommonFieldValidation = {
   DOB: joi.date(),
 
   gender: joi.string().valid(...Object.values(GenderEnum)),
-OTP: joi.string().pattern(/^\d{6}$/).required(),};
+OTP: joi.string().pattern(/^\d{6}$/).required(),
+id: joi.string().custom(validatedObjectIdFn),
+};
 
-export const validatedObjectIdFn = function (value, helpers){
-            if (!Types.ObjectId.isValid(value)){
-              return helpers.message("invalid object id formate")
-            }
-        }

@@ -26,6 +26,10 @@ export async function incr( key) {
   return await client.incr(key )
 }
 
+export async function decr( key) {
+  return await client.decr(key )
+}
+
 export async function hset({ key, field, value }) {
   return await client.hSet(key, field, value);
 }
